@@ -12,6 +12,7 @@ import java.util.Map;
 @Service
 @Getter
 public class InMemoryNumberStoreService {
+// Who will control the size of this map?
     private final Map<Integer, Boolean> cache = new HashMap<>();
     private final Deque<Integer> queue = new LinkedList<>();
     @Value("${in.memory.store.capacity:100}")
@@ -23,6 +24,7 @@ public class InMemoryNumberStoreService {
         }
 
         queue.addFirst(number);
+//It's not clear how values are used and why they are needed at all
         cache.put(number, true);
         if (queue.size() > capacity) {
             Integer removed = queue.removeLast();
