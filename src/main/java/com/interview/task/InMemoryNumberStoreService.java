@@ -14,17 +14,23 @@ import java.util.Map;
 public class InMemoryNumberStoreService {
     private final Map<Integer, Boolean> cache = new HashMap<>();
     private final Deque<Integer> queue = new LinkedList<>();
-    @Value("${in.memory.store.capacity:100}")
-    private int capacity;
+    @Value("${in.memory.queue.capacity:100}")
+    private int queueCapacity;
+    @Value("${in.memory.store.capacity:500}")
+    private int storeCapacity;
 
-    public synchronized boolean offerNumber(Integer number) {
+    public synchronized boolean offerNumber(Integer number) throws StoreIsFullException {
         if (cache.containsKey(number)) {
             return false;
         }
 
+        if (cache.size() >= storeCapacity) {
+            throw new StoreIsFullException(String.format("storage reached its limit size '%s'", storeCapacity));
+        }
+
         queue.addFirst(number);
         cache.put(number, true);
-        if (queue.size() > capacity) {
+        if (queue.size() > queueCapacity) {
             Integer removed = queue.removeLast();
             cache.put(removed, false);
         }

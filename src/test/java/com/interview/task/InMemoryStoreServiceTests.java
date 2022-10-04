@@ -1,5 +1,6 @@
 package com.interview.task;
 
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,10 +10,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {"in.memory.store.capacity=100"})
+@SpringBootTest(properties = {
+        "in.memory.store.capacity=500",
+        "in.memory.queue.capacity=100"
+})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class InMemoryStoreServiceTests {
 
@@ -20,23 +23,42 @@ public class InMemoryStoreServiceTests {
     InMemoryNumberStoreService inMemoryNumberStoreService;
 
     @Test
+    @SneakyThrows
     void allUniqueReturnTrue() {
-        boolean result = IntStream.rangeClosed(1, 100).boxed().allMatch(inMemoryNumberStoreService::offerNumber);
+        boolean result = true;
+        for (int i = 0; i < 100; i++) {
+            result = result && inMemoryNumberStoreService.offerNumber(i);
+        }
         assertTrue(result);
     }
 
     @Test
+    @SneakyThrows
     void allNotUniqueReturnFalse() {
-        IntStream.rangeClosed(1, 100).boxed().forEach(inMemoryNumberStoreService::offerNumber);
-        boolean result = IntStream.rangeClosed(1, 100).boxed().anyMatch(inMemoryNumberStoreService::offerNumber);
+        for (int i = 0; i < 100; i++) {
+           inMemoryNumberStoreService.offerNumber(i);
+        }
+
+        boolean result = false;
+        for (int i = 0; i < 100; i++) {
+            result = result || inMemoryNumberStoreService.offerNumber(i);
+        }
+
         assertFalse(result);
     }
 
     @Test
+    @SneakyThrows
     void checkIfNumberProperlyEvicted() {
         //firstBatch candidate to be evicted
-        IntStream.rangeClosed(1, 50).boxed().forEach(inMemoryNumberStoreService::offerNumber);
-        boolean actual = IntStream.rangeClosed(51, 150).boxed().allMatch(inMemoryNumberStoreService::offerNumber);
+        for (int i = 1; i <= 50; i++) {
+            inMemoryNumberStoreService.offerNumber(i);
+        }
+
+        boolean actual = true;
+        for (int i = 51; i <= 150; i++) {
+            actual = actual && inMemoryNumberStoreService.offerNumber(i);
+        }
         //must be true because all unique
         assertTrue(actual);
 
@@ -52,5 +74,16 @@ public class InMemoryStoreServiceTests {
         // expected all evicted has false value
         boolean anyEvictedValue = IntStream.rangeClosed(1, 50).boxed().anyMatch(n -> inMemoryNumberStoreService.getCache().get(n));
         assertFalse(anyEvictedValue);
+    }
+
+    @Test
+    void checkForProperlyExceptionWhenStoreIsFull() {
+        try {
+            for (int i = 0; i < 501; i++) {
+                inMemoryNumberStoreService.offerNumber(i);
+            }
+            fail("StoreIsFullException expected");
+        } catch (StoreIsFullException e) {
+        }
     }
 }

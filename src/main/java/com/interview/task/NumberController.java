@@ -15,7 +15,11 @@ public class NumberController {
 
     @GetMapping(path = "/offerNumber")
     public ResponseEntity<String> offerNumber(@NotNull @RequestParam("number") Integer number) {
-        boolean result = service.offerNumber(number);
-        return result ? ResponseEntity.ok().build() : ResponseEntity.badRequest().body("offered number not unique");
+        try {
+            boolean result = service.offerNumber(number);
+            return result ? ResponseEntity.ok().build() : ResponseEntity.badRequest().body("offered number not unique");
+        } catch (StoreIsFullException e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 }
